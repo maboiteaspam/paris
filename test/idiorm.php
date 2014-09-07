@@ -98,7 +98,7 @@
         // --- INSTANCE PROPERTIES --- //
         // --------------------------- //
 
-        // Key name of the connections in self::$_db used by this instance
+        // Key name of the connections in static::$_db used by this instance
         protected $_connection_name;
 
         // The name of the table the current ORM instance is associated with
@@ -184,13 +184,13 @@
          * @param string $connection_name Which connection to use
          */
         public static function configure($key, $value = null, $connection_name = self::DEFAULT_CONNECTION) {
-            self::_setup_db_config($connection_name); //ensures at least default config is set
+            static::_setup_db_config($connection_name); //ensures at least default config is set
 
             if (is_array($key)) {
                 // Shortcut: If only one array argument is passed,
                 // assume it's an array of configuration settings
                 foreach ($key as $conf_key => $conf_value) {
-                    self::configure($conf_key, $conf_value, $connection_name);
+                    static::configure($conf_key, $conf_value, $connection_name);
                 }
             } else {
                 if (is_null($value)) {
@@ -199,7 +199,7 @@
                     $value = $key;
                     $key = 'connection_string';
                 }
-                self::$_config[$connection_name][$key] = $value;
+                static::$_config[$connection_name][$key] = $value;
             }
         }
 
@@ -210,9 +210,9 @@
          */
         public static function get_config($key = null, $connection_name = self::DEFAULT_CONNECTION) {
             if ($key) {
-                return self::$_config[$connection_name][$key];
+                return static::$_config[$connection_name][$key];
             } else {
-                return self::$_config[$connection_name];
+                return static::$_config[$connection_name];
             }
         }
 
@@ -220,7 +220,7 @@
          * Delete all configs in _config array.
          */
         public static function reset_config() {
-            self::$_config = array();
+            static::$_config = array();
         }
         
         /**
@@ -234,8 +234,8 @@
          * @return ORM
          */
         public static function for_table($table_name, $connection_name = self::DEFAULT_CONNECTION) {
-            self::_setup_db($connection_name);
-            return new self($table_name, array(), $connection_name);
+            static::_setup_db($connection_name);
+            return new static($table_name, array(), $connection_name);
         }
 
         /**
@@ -243,19 +243,19 @@
          * @param string $connection_name Which connection to use
          */
         protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION) {
-            if (!array_key_exists($connection_name, self::$_db) ||
-                !is_object(self::$_db[$connection_name])) {
-                self::_setup_db_config($connection_name);
+            if (!array_key_exists($connection_name, static::$_db) ||
+                !is_object(static::$_db[$connection_name])) {
+                static::_setup_db_config($connection_name);
 
                 $db = new PDO(
-                    self::$_config[$connection_name]['connection_string'],
-                    self::$_config[$connection_name]['username'],
-                    self::$_config[$connection_name]['password'],
-                    self::$_config[$connection_name]['driver_options']
+                    static::$_config[$connection_name]['connection_string'],
+                    static::$_config[$connection_name]['username'],
+                    static::$_config[$connection_name]['password'],
+                    static::$_config[$connection_name]['driver_options']
                 );
 
-                $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
-                self::set_db($db, $connection_name);
+                $db->setAttribute(PDO::ATTR_ERRMODE, static::$_config[$connection_name]['error_mode']);
+                static::set_db($db, $connection_name);
             }
         }
 
@@ -264,8 +264,8 @@
         * @param string $connection_name Which connection to use
         */
         protected static function _setup_db_config($connection_name) {
-            if (!array_key_exists($connection_name, self::$_config)) {
-                self::$_config[$connection_name] = self::$_default_config;
+            if (!array_key_exists($connection_name, static::$_config)) {
+                static::$_config[$connection_name] = static::$_default_config;
             }
         }
 
@@ -278,11 +278,11 @@
          * @param string $connection_name Which connection to use
          */
         public static function set_db($db, $connection_name = self::DEFAULT_CONNECTION) {
-            self::_setup_db_config($connection_name);
-            self::$_db[$connection_name] = $db;
-            if(!is_null(self::$_db[$connection_name])) {
-                self::_setup_identifier_quote_character($connection_name);
-                self::_setup_limit_clause_style($connection_name);
+            static::_setup_db_config($connection_name);
+            static::$_db[$connection_name] = $db;
+            if(!is_null(static::$_db[$connection_name])) {
+                static::_setup_identifier_quote_character($connection_name);
+                static::_setup_limit_clause_style($connection_name);
             }
         }
 
@@ -290,7 +290,7 @@
          * Delete all registered PDO objects in _db array.
          */
         public static function reset_db() {
-            self::$_db = array();
+            static::$_db = array();
         }
 
         /**
@@ -301,9 +301,9 @@
          * @param string $connection_name Which connection to use
          */
         protected static function _setup_identifier_quote_character($connection_name) {
-            if (is_null(self::$_config[$connection_name]['identifier_quote_character'])) {
-                self::$_config[$connection_name]['identifier_quote_character'] =
-                    self::_detect_identifier_quote_character($connection_name);
+            if (is_null(static::$_config[$connection_name]['identifier_quote_character'])) {
+                static::$_config[$connection_name]['identifier_quote_character'] =
+                    static::_detect_identifier_quote_character($connection_name);
             }
         }
 
@@ -314,9 +314,9 @@
          * @param string $connection_name Which connection to use
          */
         public static function _setup_limit_clause_style($connection_name) {
-            if (is_null(self::$_config[$connection_name]['limit_clause_style'])) {
-                self::$_config[$connection_name]['limit_clause_style'] =
-                    self::_detect_limit_clause_style($connection_name);
+            if (is_null(static::$_config[$connection_name]['limit_clause_style'])) {
+                static::$_config[$connection_name]['limit_clause_style'] =
+                    static::_detect_limit_clause_style($connection_name);
             }
         }
 
@@ -327,7 +327,7 @@
          * @return string
          */
         protected static function _detect_identifier_quote_character($connection_name) {
-            switch(self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
+            switch(static::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
                 case 'pgsql':
                 case 'sqlsrv':
                 case 'dblib':
@@ -350,7 +350,7 @@
          * @return string Limit clause style keyword/constant
          */
         protected static function _detect_limit_clause_style($connection_name) {
-            switch(self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
+            switch(static::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
                 case 'sqlsrv':
                 case 'dblib':
                 case 'mssql':
@@ -369,8 +369,8 @@
          * @return PDO
          */
         public static function get_db($connection_name = self::DEFAULT_CONNECTION) {
-            self::_setup_db($connection_name); // required in case this is called before Idiorm is instantiated
-            return self::$_db[$connection_name];
+            static::_setup_db($connection_name); // required in case this is called before Idiorm is instantiated
+            return static::$_db[$connection_name];
         }
 
         /**
@@ -385,8 +385,8 @@
          * @return bool Success
          */
         public static function raw_execute($query, $parameters = array(), $connection_name = self::DEFAULT_CONNECTION) {
-            self::_setup_db($connection_name);
-            return self::_execute($query, $parameters, $connection_name);
+            static::_setup_db($connection_name);
+            return static::_execute($query, $parameters, $connection_name);
         }
 
         /**
@@ -395,7 +395,7 @@
          * @return PDOStatement
          */
         public static function get_last_statement() {
-            return self::$_last_statement;
+            return static::$_last_statement;
         }
 
        /**
@@ -406,24 +406,33 @@
         * @param array $parameters An array of parameters to be bound in to the query
         * @param string $connection_name Which connection to use
         * @return bool Response of PDOStatement::execute()
+        * @throws Exception
         */
         protected static function _execute($query, $parameters = array(), $connection_name = self::DEFAULT_CONNECTION) {
-            $statement = self::get_db($connection_name)->prepare($query);
-            self::$_last_statement = $statement;
             $time = microtime(true);
+            try{
+                $statement = static::get_db($connection_name)->prepare($query);
+                static::$_last_statement = $statement;
 
-            $count = count($parameters);
-            for ($i = 0; $i < $count; $i++) {
-                $type = PDO::PARAM_STR;
-                if (is_null($parameters[$i])) $type = PDO::PARAM_NULL;
-                if (is_bool($parameters[$i])) $type = PDO::PARAM_BOOL;
-                if (is_int($parameters[$i])) $type = PDO::PARAM_INT;
-                $statement->bindParam($i + 1, $parameters[$i], $type);
+                foreach ($parameters as $key => &$param) {
+                    if (is_null($param)) {
+                        $type = PDO::PARAM_NULL;
+                    } else if (is_bool($param)) {
+                        $type = PDO::PARAM_BOOL;
+                    } else if (is_int($param)) {
+                        $type = PDO::PARAM_INT;
+                    } else {
+                        $type = PDO::PARAM_STR;
+                    }
+
+                    $statement->bindParam(is_int($key) ? ++$key : $key, $param, $type);
+                }
+                $q = $statement->execute();
+                static::_log_query($query, $parameters, $connection_name, (microtime(true)-$time));
+            }catch(\Exception $ex ){
+                static::_log_query($query, $parameters, $connection_name, (microtime(true)-$time));
+                throw $ex;
             }
-
-            $q = $statement->execute();
-            self::_log_query($query, $parameters, $connection_name, (microtime(true)-$time));
-
             return $q;
         }
 
@@ -443,12 +452,12 @@
          */
         protected static function _log_query($query, $parameters, $connection_name, $query_time) {
             // If logging is not enabled, do nothing
-            if (!self::$_config[$connection_name]['logging']) {
+            if (!static::$_config[$connection_name]['logging']) {
                 return false;
             }
 
-            if (!isset(self::$_query_log[$connection_name])) {
-                self::$_query_log[$connection_name] = array();
+            if (!isset(static::$_query_log[$connection_name])) {
+                static::$_query_log[$connection_name] = array();
             }
 
             // Strip out any non-integer indexes from the parameters
@@ -458,7 +467,7 @@
 
             if (count($parameters) > 0) {
                 // Escape the parameters
-                $parameters = array_map(array(self::get_db($connection_name), 'quote'), $parameters);
+                $parameters = array_map(array(static::get_db($connection_name), 'quote'), $parameters);
 
                 // Avoid %format collision for vsprintf
                 $query = str_replace("%", "%%", $query);
@@ -476,12 +485,12 @@
                 $bound_query = $query;
             }
 
-            self::$_last_query = $bound_query;
-            self::$_query_log[$connection_name][] = $bound_query;
+            static::$_last_query = $bound_query;
+            static::$_query_log[$connection_name][] = $bound_query;
             
             
-            if(is_callable(self::$_config[$connection_name]['logger'])){
-                $logger = self::$_config[$connection_name]['logger'];
+            if(is_callable(static::$_config[$connection_name]['logger'])){
+                $logger = static::$_config[$connection_name]['logger'];
                 $logger($bound_query, $query_time);
             }
             
@@ -498,13 +507,13 @@
          */
         public static function get_last_query($connection_name = null) {
             if ($connection_name === null) {
-                return self::$_last_query;
+                return static::$_last_query;
             }
-            if (!isset(self::$_query_log[$connection_name])) {
+            if (!isset(static::$_query_log[$connection_name])) {
                 return '';
             }
 
-            return end(self::$_query_log[$connection_name]);
+            return end(static::$_query_log[$connection_name]);
         }
 
         /**
@@ -515,8 +524,8 @@
          * @param string $connection_name Which connection to use
          */
         public static function get_query_log($connection_name = self::DEFAULT_CONNECTION) {
-            if (isset(self::$_query_log[$connection_name])) {
-                return self::$_query_log[$connection_name];
+            if (isset(static::$_query_log[$connection_name])) {
+                return static::$_query_log[$connection_name];
             }
             return array();
         }
@@ -526,7 +535,7 @@
          * @return array
          */
         public static function get_connection_names() {
-            return array_keys(self::$_db);
+            return array_keys(static::$_db);
         }
 
         // ------------------------ //
@@ -542,7 +551,7 @@
             $this->_data = $data;
 
             $this->_connection_name = $connection_name;
-            self::_setup_db_config($connection_name);
+            static::_setup_db_config($connection_name);
         }
 
         /**
@@ -579,7 +588,7 @@
          * array of data fetched from the database)
          */
         protected function _create_instance_from_row($row) {
-            $instance = self::for_table($this->_table_name, $this->_connection_name);
+            $instance = static::for_table($this->_table_name, $this->_connection_name);
             $instance->use_id_column($this->_instance_id_column);
             $instance->hydrate($row);
             return $instance;
@@ -616,7 +625,7 @@
          * @return array|\IdiormResultSet
          */
         public function find_many() {
-            if(self::$_config[$this->_connection_name]['return_result_sets']) {
+            if(static::$_config[$this->_connection_name]['return_result_sets']) {
                 return $this->find_result_set();
             }
             return $this->_find_many();
@@ -1116,8 +1125,8 @@
                 $values = array($values);
             }
             array_push($this->$conditions_class_property_name, array(
-                self::CONDITION_FRAGMENT => $fragment,
-                self::CONDITION_VALUES => $values,
+                static::CONDITION_FRAGMENT => $fragment,
+                static::CONDITION_VALUES => $values,
             ));
             return $this;
         }
@@ -1464,7 +1473,7 @@
          */
         public function having_id_is($id) {
             return (is_array($this->_get_id_column_name())) ?
-                $this->having($this->_get_compound_id_column_values($value)) :
+                $this->having($this->_get_compound_id_column_values($id)) :
                 $this->having($this->_get_id_column_name(), $id);
         }
 
@@ -1581,7 +1590,7 @@
             $result_columns = join(', ', $this->_result_columns);
 
             if (!is_null($this->_limit) &&
-                self::$_config[$this->_connection_name]['limit_clause_style'] === ORM::LIMIT_STYLE_TOP_N) {
+                static::$_config[$this->_connection_name]['limit_clause_style'] === ORM::LIMIT_STYLE_TOP_N) {
                 $fragment .= "TOP {$this->_limit} ";
             }
 
@@ -1646,8 +1655,8 @@
 
             $conditions = array();
             foreach ($this->$conditions_class_property_name as $condition) {
-                $conditions[] = $condition[self::CONDITION_FRAGMENT];
-                $this->_values = array_merge($this->_values, $condition[self::CONDITION_VALUES]);
+                $conditions[] = $condition[static::CONDITION_FRAGMENT];
+                $this->_values = array_merge($this->_values, $condition[static::CONDITION_VALUES]);
             }
 
             return strtoupper($type) . " " . join(" AND ", $conditions);
@@ -1669,8 +1678,8 @@
         protected function _build_limit() {
             $fragment = '';
             if (!is_null($this->_limit) &&
-                self::$_config[$this->_connection_name]['limit_clause_style'] == ORM::LIMIT_STYLE_LIMIT) {
-                if (self::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
+                static::$_config[$this->_connection_name]['limit_clause_style'] == ORM::LIMIT_STYLE_LIMIT) {
+                if (static::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
                     $fragment = 'ROWS';
                 } else {
                     $fragment = 'LIMIT';
@@ -1686,7 +1695,7 @@
         protected function _build_offset() {
             if (!is_null($this->_offset)) {
                 $clause = 'OFFSET';
-                if (self::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
+                if (static::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
                     $clause = 'TO';
                 }
                 return "$clause " . $this->_offset;
@@ -1747,7 +1756,7 @@
                 return $part;
             }
 
-            $quote_character = self::$_config[$this->_connection_name]['identifier_quote_character'];
+            $quote_character = static::$_config[$this->_connection_name]['identifier_quote_character'];
             // double up any identifier quotes to escape them
             return $quote_character .
                    str_replace($quote_character,
@@ -1760,8 +1769,8 @@
          * Create a cache key for the given query and parameters.
          */
         protected static function _create_cache_key($query, $parameters, $table_name = null, $connection_name = self::DEFAULT_CONNECTION) {
-            if(isset(self::$_config[$connection_name]['create_cache_key']) and is_callable(self::$_config[$connection_name]['create_cache_key'])){
-                return call_user_func_array(self::$_config[$connection_name]['create_cache_key'], array($query, $parameters, $table_name, $connection_name));
+            if(isset(static::$_config[$connection_name]['create_cache_key']) and is_callable(static::$_config[$connection_name]['create_cache_key'])){
+                return call_user_func_array(static::$_config[$connection_name]['create_cache_key'], array($query, $parameters, $table_name, $connection_name));
             }
             $parameter_string = join(',', $parameters);
             $key = $query . ':' . $parameter_string;
@@ -1773,10 +1782,10 @@
          * is cached for the key, return the value. Otherwise, return false.
          */
         protected static function _check_query_cache($cache_key, $table_name = null, $connection_name = self::DEFAULT_CONNECTION) {
-            if(isset(self::$_config[$connection_name]['check_query_cache']) and is_callable(self::$_config[$connection_name]['check_query_cache'])){
-                return call_user_func_array(self::$_config[$connection_name]['check_query_cache'], array($cache_key, $table_name, $connection_name));
-            } elseif (isset(self::$_query_cache[$connection_name][$cache_key])) {
-                return self::$_query_cache[$connection_name][$cache_key];
+            if(isset(static::$_config[$connection_name]['check_query_cache']) and is_callable(static::$_config[$connection_name]['check_query_cache'])){
+                return call_user_func_array(static::$_config[$connection_name]['check_query_cache'], array($cache_key, $table_name, $connection_name));
+            } elseif (isset(static::$_query_cache[$connection_name][$cache_key])) {
+                return static::$_query_cache[$connection_name][$cache_key];
             }
             return false;
         }
@@ -1785,9 +1794,9 @@
          * Clear the query cache
          */
         public static function clear_cache($table_name = null, $connection_name = self::DEFAULT_CONNECTION) {
-            self::$_query_cache = array();
-            if(isset(self::$_config[$connection_name]['clear_cache']) and is_callable(self::$_config[$connection_name]['clear_cache'])){
-                return call_user_func_array(self::$_config[$connection_name]['clear_cache'], array($table_name, $connection_name));
+            static::$_query_cache = array();
+            if(isset(static::$_config[$connection_name]['clear_cache']) and is_callable(static::$_config[$connection_name]['clear_cache'])){
+                return call_user_func_array(static::$_config[$connection_name]['clear_cache'], array($table_name, $connection_name));
             }
         }
 
@@ -1795,12 +1804,12 @@
          * Add the given value to the query cache.
          */
         protected static function _cache_query_result($cache_key, $value, $table_name = null, $connection_name = self::DEFAULT_CONNECTION) {
-            if(isset(self::$_config[$connection_name]['cache_query_result']) and is_callable(self::$_config[$connection_name]['cache_query_result'])){
-                return call_user_func_array(self::$_config[$connection_name]['cache_query_result'], array($cache_key, $value, $table_name, $connection_name));
-            } elseif (!isset(self::$_query_cache[$connection_name])) {
-                self::$_query_cache[$connection_name] = array();
+            if(isset(static::$_config[$connection_name]['cache_query_result']) and is_callable(static::$_config[$connection_name]['cache_query_result'])){
+                return call_user_func_array(static::$_config[$connection_name]['cache_query_result'], array($cache_key, $value, $table_name, $connection_name));
+            } elseif (!isset(static::$_query_cache[$connection_name])) {
+                static::$_query_cache[$connection_name] = array();
             }
-            self::$_query_cache[$connection_name][$cache_key] = $value;
+            static::$_query_cache[$connection_name][$cache_key] = $value;
         }
 
         /**
@@ -1809,19 +1818,19 @@
          */
         protected function _run() {
             $query = $this->_build_select();
-            $caching_enabled = self::$_config[$this->_connection_name]['caching'];
+            $caching_enabled = static::$_config[$this->_connection_name]['caching'];
 
             if ($caching_enabled) {
-                $cache_key = self::_create_cache_key($query, $this->_values, $this->_table_name, $this->_connection_name);
-                $cached_result = self::_check_query_cache($cache_key, $this->_table_name, $this->_connection_name);
+                $cache_key = static::_create_cache_key($query, $this->_values, $this->_table_name, $this->_connection_name);
+                $cached_result = static::_check_query_cache($cache_key, $this->_table_name, $this->_connection_name);
 
                 if ($cached_result !== false) {
                     return $cached_result;
                 }
             }
 
-            self::_execute($query, $this->_values, $this->_connection_name);
-            $statement = self::get_last_statement();
+            static::_execute($query, $this->_values, $this->_connection_name);
+            $statement = static::get_last_statement();
 
             $rows = array();
             while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
@@ -1829,7 +1838,7 @@
             }
 
             if ($caching_enabled) {
-                self::_cache_query_result($cache_key, $rows, $this->_table_name, $this->_connection_name);
+                static::_cache_query_result($cache_key, $rows, $this->_table_name, $this->_connection_name);
             }
 
             // reset Idiorm after executing the query
@@ -1881,10 +1890,10 @@
             if (!is_null($this->_instance_id_column)) {
                 return $this->_instance_id_column;
             }
-            if (isset(self::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name])) {
-                return self::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name];
+            if (isset(static::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name])) {
+                return static::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name];
             }
-            return self::$_config[$this->_connection_name]['id_column'];
+            return static::$_config[$this->_connection_name]['id_column'];
         }
 
         /**
@@ -1996,20 +2005,20 @@
                 $query = $this->_build_insert();
             }
 
-            $success = self::_execute($query, $values, $this->_connection_name);
-            $caching_auto_clear_enabled = self::$_config[$this->_connection_name]['caching_auto_clear'];
+            $success = static::_execute($query, $values, $this->_connection_name);
+            $caching_auto_clear_enabled = static::$_config[$this->_connection_name]['caching_auto_clear'];
             if($caching_auto_clear_enabled){
-                self::clear_cache($this->_table_name, $this->_connection_name);
+                static::clear_cache($this->_table_name, $this->_connection_name);
             }
             // If we've just inserted a new record, set the ID of this object
             if ($this->_is_new) {
                 $this->_is_new = false;
                 if ($this->count_null_id_columns() != 0) {
-                    $db = self::get_db($this->_connection_name);
+                    $db = static::get_db($this->_connection_name);
                     if($db->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
                         // it may return several columns if a compound primary
                         // key is used
-                        $row = self::get_last_statement()->fetch(PDO::FETCH_ASSOC);
+                        $row = static::get_last_statement()->fetch(PDO::FETCH_ASSOC);
                         foreach($row as $key => $value) {
                             $this->_data[$key] = $value;
                         }
@@ -2080,7 +2089,7 @@
             $placeholders = $this->_create_placeholders($this->_dirty_fields);
             $query[] = "({$placeholders})";
 
-            if (self::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
+            if (static::get_db($this->_connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
                 $query[] = 'RETURNING ' . $this->_quote_identifier($this->_get_id_column_name());
             }
 
@@ -2096,7 +2105,7 @@
                 $this->_quote_identifier($this->_table_name)
             );
             $this->_add_id_column_conditions($query);
-            return self::_execute(join(" ", $query), is_array($this->id(true)) ? array_values($this->id(true)) : array($this->id(true)), $this->_connection_name);
+            return static::_execute(join(" ", $query), is_array($this->id(true)) ? array_values($this->id(true)) : array($this->id(true)), $this->_connection_name);
         }
 
         /**
@@ -2111,7 +2120,7 @@
                 $this->_build_where(),
             ));
 
-            return self::_execute($query, $this->_values, $this->_connection_name);
+            return static::_execute($query, $this->_values, $this->_connection_name);
         }
 
         // --------------------- //
@@ -2160,12 +2169,12 @@
 
         /**
          * Magic method to capture calls to undefined class methods.
-         * In this case we are attempting to convert camel case formatted 
+         * In this case we are attempting to convert camel case formatted
          * methods into underscore formatted methods.
          *
-         * This allows us to call ORM methods using camel case and remain 
+         * This allows us to call ORM methods using camel case and remain
          * backwards compatible.
-         * 
+         *
          * @param  string   $name
          * @param  array    $arguments
          * @return ORM
@@ -2182,13 +2191,13 @@
         }
 
         /**
-         * Magic method to capture calls to undefined static class methods. 
-         * In this case we are attempting to convert camel case formatted 
+         * Magic method to capture calls to undefined static class methods.
+         * In this case we are attempting to convert camel case formatted
          * methods into underscore formatted methods.
          *
-         * This allows us to call ORM methods using camel case and remain 
+         * This allows us to call ORM methods using camel case and remain
          * backwards compatible.
-         * 
+         *
          * @param  string   $name
          * @param  array    $arguments
          * @return ORM
@@ -2217,10 +2226,10 @@
         /**
          * Get an easy to use instance of the class
          * @param string $subject
-         * @return \self
+         * @return \static
          */
         public static function value($subject) {
-            return new self($subject);
+            return new static($subject);
         }
 
         /**
@@ -2232,7 +2241,7 @@
          * @return string
          */
         public static function str_replace_outside_quotes($search, $replace, $subject) {
-            return self::value($subject)->replace_outside_quotes($search, $replace);
+            return static::value($subject)->replace_outside_quotes($search, $replace);
         }
 
         /**
@@ -2262,6 +2271,7 @@
          * @author Jeff Roberson <ridgerunner@fluxbb.org>
          * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
          * @return string
+         * @throws IdiormStringException
          */
         protected function _str_replace_outside_quotes(){
             $re_valid = '/

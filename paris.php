@@ -102,8 +102,8 @@
          * @return ORMWrapper
          */
         public static function for_table($table_name, $connection_name = parent::DEFAULT_CONNECTION) {
-            self::_setup_db($connection_name);
-            return new self($table_name, array(), $connection_name);
+            static::_setup_db($connection_name);
+            return new static($table_name, array(), $connection_name);
         }
 
         /**
@@ -233,9 +233,9 @@
          * @return string
          */
         protected static function _get_table_name($class_name) {
-            $specified_table_name = self::_get_static_property($class_name, '_table');
+            $specified_table_name = static::_get_static_property($class_name, '_table');
             $use_short_class_name =
-                self::_get_static_property($class_name, '_table_use_short_name');
+                static::_get_static_property($class_name, '_table_use_short_name');
 
             if ($use_short_class_name) {
                 $exploded_class_name = explode('\\', $class_name);
@@ -243,7 +243,7 @@
             }
 
             if (is_null($specified_table_name)) {
-                return self::_class_name_to_table_name($class_name);
+                return static::_class_name_to_table_name($class_name);
             }
             return $specified_table_name;
         }
@@ -278,7 +278,7 @@
          * @return string|null
          */
         protected static function _get_id_column_name($class_name) {
-            return self::_get_static_property($class_name, '_id_column', self::DEFAULT_ID_COLUMN);
+            return static::_get_static_property($class_name, '_id_column', static::DEFAULT_ID_COLUMN);
         }
 
         /**
@@ -295,7 +295,7 @@
             if (!is_null($specified_foreign_key_name)) {
                 return $specified_foreign_key_name;
             }
-            return $table_name . self::DEFAULT_FOREIGN_KEY_SUFFIX;
+            return $table_name . static::DEFAULT_FOREIGN_KEY_SUFFIX;
         }
 
         /**
@@ -312,11 +312,11 @@
          * @return ORMWrapper
          */
         public static function factory($class_name, $connection_name = null) {
-            $class_name = self::$auto_prefix_models . $class_name;
-            $table_name = self::_get_table_name($class_name);
+            $class_name = static::$auto_prefix_models . $class_name;
+            $table_name = static::_get_table_name($class_name);
 
             if ($connection_name == null) {
-               $connection_name = self::_get_static_property(
+               $connection_name = static::_get_static_property(
                    $class_name,
                    '_connection_name',
                    ORMWrapper::DEFAULT_CONNECTION
@@ -324,7 +324,7 @@
             }
             $wrapper = ORMWrapper::for_table($table_name, $connection_name);
             $wrapper->set_class_name($class_name);
-            $wrapper->use_id_column(self::_get_id_column_name($class_name));
+            $wrapper->use_id_column(static::_get_id_column_name($class_name));
             return $wrapper;
         }
 
@@ -341,8 +341,8 @@
          * @return ORMWrapper
          */
         protected function _has_one_or_many($associated_class_name, $foreign_key_name=null, $foreign_key_name_in_current_models_table=null, $connection_name=null) {
-            $base_table_name = self::_get_table_name(get_class($this));
-            $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
+            $base_table_name = static::_get_table_name(get_class($this));
+            $foreign_key_name = static::_build_foreign_key_name($foreign_key_name, $base_table_name);
             
             $where_value = ''; //Value of foreign_table.{$foreign_key_name} we're 
                                //looking for. Where foreign_table is the actual 
@@ -358,7 +358,7 @@
                 $where_value = $this->$foreign_key_name_in_current_models_table;
             }
             
-            return self::factory($associated_class_name, $connection_name)->where($foreign_key_name, $where_value);
+            return static::factory($associated_class_name, $connection_name)->where($foreign_key_name, $where_value);
         }
 
         /**
@@ -400,8 +400,8 @@
          * @return $this|null
          */
         protected function belongs_to($associated_class_name, $foreign_key_name=null, $foreign_key_name_in_associated_models_table=null, $connection_name=null) {
-            $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
-            $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $associated_table_name);
+            $associated_table_name = static::_get_table_name(static::$auto_prefix_models . $associated_class_name);
+            $foreign_key_name = static::_build_foreign_key_name($foreign_key_name, $associated_table_name);
             $associated_object_id = $this->$foreign_key_name;
             
             $desired_record = null;
@@ -410,10 +410,10 @@
                 //"{$associated_table_name}.primary_key = {$associated_object_id}"
                 //NOTE: primary_key is a placeholder for the actual primary key column's name
                 //in $associated_table_name
-                $desired_record = self::factory($associated_class_name, $connection_name)->where_id_is($associated_object_id);
+                $desired_record = static::factory($associated_class_name, $connection_name)->where_id_is($associated_object_id);
             } else {
                 //"{$associated_table_name}.{$foreign_key_name_in_associated_models_table} = {$associated_object_id}"
-                $desired_record = self::factory($associated_class_name, $connection_name)->where($foreign_key_name_in_associated_models_table, $associated_object_id);
+                $desired_record = static::factory($associated_class_name, $connection_name)->where($foreign_key_name_in_associated_models_table, $associated_object_id);
             }
             
             return $desired_record;
@@ -441,8 +441,8 @@
             if (is_null($join_class_name)) {
                 $model = explode('\\', $base_class_name);
                 $model_name = end($model);
-                if (substr($model_name, 0, strlen(self::$auto_prefix_models)) == self::$auto_prefix_models) {
-                    $model_name = substr($model_name, strlen(self::$auto_prefix_models), strlen($model_name));
+                if (substr($model_name, 0, strlen(static::$auto_prefix_models)) == static::$auto_prefix_models) {
+                    $model_name = substr($model_name, strlen(static::$auto_prefix_models), strlen($model_name));
                 }
                 $class_names = array($model_name, $associated_class_name);
                 sort($class_names, SORT_STRING);
@@ -450,21 +450,21 @@
             }
 
             // Get table names for each class
-            $base_table_name = self::_get_table_name($base_class_name);
-            $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
-            $join_table_name = self::_get_table_name(self::$auto_prefix_models . $join_class_name);
+            $base_table_name = static::_get_table_name($base_class_name);
+            $associated_table_name = static::_get_table_name(static::$auto_prefix_models . $associated_class_name);
+            $join_table_name = static::_get_table_name(static::$auto_prefix_models . $join_class_name);
 
             // Get ID column names
             $base_table_id_column = (is_null($key_in_base_table)) ?
-                self::_get_id_column_name($base_class_name) :
+                static::_get_id_column_name($base_class_name) :
                 $key_in_base_table;
             $associated_table_id_column = (is_null($key_in_associated_table)) ?
-                self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name) :
+                static::_get_id_column_name(static::$auto_prefix_models . $associated_class_name) :
                 $key_in_associated_table;
 
             // Get the column names for each side of the join table
-            $key_to_base_table = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
-            $key_to_associated_table = self::_build_foreign_key_name($key_to_associated_table, $associated_table_name);
+            $key_to_base_table = static::_build_foreign_key_name($key_to_base_table, $base_table_name);
+            $key_to_associated_table = static::_build_foreign_key_name($key_to_associated_table, $associated_table_name);
     
             /*
                 "   SELECT {$associated_table_name}.*
@@ -473,7 +473,7 @@
                      WHERE {$join_table_name}.{$key_to_base_table} = {$this->$base_table_id_column} ;"
             */
 
-            return self::factory($associated_class_name, $connection_name)
+            return static::factory($associated_class_name, $connection_name)
                 ->select("{$associated_table_name}.*")
                 ->join($join_table_name, array("{$associated_table_name}.{$associated_table_id_column}", '=', "{$join_table_name}.{$key_to_associated_table}"))
                 ->where("{$join_table_name}.{$key_to_base_table}", $this->$base_table_id_column); ;
@@ -535,7 +535,7 @@
          *
          * @param  string|array $property
          * @param  string|null  $value
-         * @return void
+         * @return Model
          */
         public function set($property, $value = null) {
             $this->orm->set($property, $value);
@@ -547,7 +547,7 @@
          *
          * @param  string|array $property
          * @param  string|null  $value
-         * @return void
+         * @return Model
          */
         public function set_expr($property, $value = null) {
             $this->orm->set_expr($property, $value);
@@ -632,7 +632,7 @@
          */
         public static function __callStatic($method, $parameters) {
             if(function_exists('get_called_class')) {
-                $model = self::factory(get_called_class());
+                $model = static::factory(get_called_class());
                 return call_user_func_array(array($model, $method), $parameters);
             }
         }
